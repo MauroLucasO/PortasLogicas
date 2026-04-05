@@ -8,7 +8,7 @@ public class TabelaVerdade {
 
         String expr = expressao.toUpperCase();
 
-        // CONVERTE BARRADO (A̅ → A')
+        // Aceita outra forma de barrado (A̅ → A')
         expr = normalizarBarrado(expr);
 
         // Substituir variáveis
