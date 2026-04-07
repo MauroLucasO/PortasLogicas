@@ -5,13 +5,9 @@ import java.util.*;
 public class TabelaVerdade {
 
     public static boolean avaliarExpressao(String expressao, Map<Character, Boolean> valores) {
-
         String expr = expressao.toUpperCase();
-
-        // Aceita outra forma de barrado (A̅ → A')
         expr = normalizarBarrado(expr);
 
-        // Substituir variáveis
         for (Map.Entry<Character, Boolean> entry : valores.entrySet()) {
             expr = expr.replaceAll("\\b" + entry.getKey() + "\\b", entry.getValue().toString());
         }
@@ -21,32 +17,21 @@ public class TabelaVerdade {
 
     private static boolean resolver(String expr) {
         expr = expr.trim();
-
-        // Retira o Espaço
         expr = expr.replaceAll(" ", "");
+        expr = expr.replace("[", "(").replace("]", ")");
 
-        // Para aceitar []
-        expr = expr.replace("[", "(");
-        expr = expr.replace("]", ")");
-
-        // Parênteses
         while (expr.contains("(")) {
             int inicio = expr.lastIndexOf("(");
             int fim = expr.indexOf(")", inicio);
-
             String dentro = expr.substring(inicio + 1, fim);
             boolean valor = resolver(dentro);
-
             expr = expr.substring(0, inicio) + valor + expr.substring(fim + 1);
         }
 
-        // Porta NOT (')
         while (expr.contains("'")) {
             expr = expr.replaceAll("true'", "false");
             expr = expr.replaceAll("false'", "true");
         }
-
-        // Porta AND (.)
 
         while (expr.contains(".")) {
             expr = expr.replaceAll("true\\.true", "true");
@@ -54,8 +39,6 @@ public class TabelaVerdade {
             expr = expr.replaceAll("false\\.true", "false");
             expr = expr.replaceAll("false\\.false", "false");
         }
-
-        // Porta OR (+)
 
         while (expr.contains("+")) {
             expr = expr.replaceAll("true\\+true", "true");
@@ -67,7 +50,6 @@ public class TabelaVerdade {
         return Boolean.parseBoolean(expr.trim());
     }
 
-    // Uma forma para declarar o barrado (A̅ → A')
     private static String normalizarBarrado(String expr) {
         StringBuilder nova = new StringBuilder();
 
@@ -85,8 +67,7 @@ public class TabelaVerdade {
         return nova.toString();
     }
 
-    // Criar tabela verdade
-    public static void gerarTabela(String expressao) {
+    public static List<String[]> gerarTabelaDados(String expressao) {
         expressao = expressao.toUpperCase();
 
         Set<Character> variaveisSet = new LinkedHashSet<>();
@@ -100,22 +81,49 @@ public class TabelaVerdade {
         int n = variaveis.size();
         int linhas = (int) Math.pow(2, n);
 
-        for (char v : variaveis) {
-            System.out.print(v + " ");
-        }
-        System.out.println("| Resultado");
+        List<String[]> tabela = new ArrayList<>();
 
         for (int i = 0; i < linhas; i++) {
             Map<Character, Boolean> valores = new HashMap<>();
+            String[] linha = new String[n + 1];
 
             for (int j = 0; j < n; j++) {
                 boolean valor = (i / (int) Math.pow(2, n - j - 1)) % 2 == 1;
                 valores.put(variaveis.get(j), valor);
-                System.out.print((valor ? 1 : 0) + " ");
+                linha[j] = valor ? "1" : "0";
             }
 
             boolean resultado = avaliarExpressao(expressao, valores);
-            System.out.println("|     " + (resultado ? 1 : 0));
+            linha[n] = resultado ? "1" : "0";
+
+            tabela.add(linha);
         }
+
+        return tabela;
+    }
+
+    public static String identificarPortas(String expressao) {
+        expressao = expressao.toUpperCase();
+        StringBuilder portas = new StringBuilder("Portas usadas: ");
+
+        if (expressao.contains(".")) {
+            portas.append("AND ");
+        }
+        if (expressao.contains("+")) {
+            portas.append("OR ");
+        }
+        if (expressao.contains("'")) {
+            portas.append("NOT ");
+        }
+
+        return portas.toString();
+    }
+
+    public static String traduzirExpressao(String expr) {
+        expr = expr.toUpperCase();
+        expr = expr.replace(".", " AND ");
+        expr = expr.replace("+", " OR ");
+        expr = expr.replace("'", " NOT ");
+        return expr;
     }
 }
