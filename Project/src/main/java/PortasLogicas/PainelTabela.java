@@ -2,20 +2,22 @@ package PortasLogicas;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public class PainelTabela extends JPanel {
 
     private List<String[]> dados;
-    private String expressao;
+    private String entrada;
 
     public PainelTabela(List<String[]> dados) {
         this.dados = dados;
     }
 
-    public void setDados(List<String[]> dados, String expressao) {
+    public void setDados(List<String[]> dados, String entrada) {
         this.dados = dados;
-        this.expressao = expressao;
+        this.entrada = entrada;
         revalidate();
         repaint();
     }
@@ -24,13 +26,15 @@ public class PainelTabela extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        if (dados == null) return;
+        if (dados != null) {
+            desenharTabela(g);
+        }
 
-        desenharTabela(g);
-        desenharCircuito(g);
+        desenharCircuitos(g);
     }
 
     private void desenharTabela(Graphics g) {
+
         int larguraCelula = 50;
         int alturaCelula = 30;
 
@@ -38,13 +42,15 @@ public class PainelTabela extends JPanel {
         int y = 50;
 
         for (int i = 0; i < dados.size(); i++) {
+
             String[] linha = dados.get(i);
 
             for (int j = 0; j < linha.length; j++) {
-                int px = x + j * larguraCelula;
-                int py = y + i * alturaCelula;
 
-                if (linha[j].equals("1")) {
+                int px = x + (j * larguraCelula);
+                int py = y + (i * alturaCelula);
+
+                if ("1".equals(linha[j])) {
                     g.setColor(Color.GREEN);
                 } else {
                     g.setColor(Color.RED);
@@ -59,65 +65,123 @@ public class PainelTabela extends JPanel {
         }
     }
 
-    private void desenharCircuito(Graphics g) {
-        if (expressao == null) return;
+    private void desenharCircuitos(Graphics g) {
+
+        if (entrada == null || entrada.isBlank()) {
+            return;
+        }
+
+        String[] expressoes = entrada.split(",");
+
+        int yBase = 150;
+
+        for (int i = 0; i < expressoes.length; i++) {
+
+            String expr = expressoes[i].trim();
+
+            desenharCircuito(g, expr, yBase);
+
+            yBase += 180;
+        }
+    }
+
+    private void desenharCircuito(Graphics g, String expressao, int baseY) {
+
+        String expr = expressao.toUpperCase();
+
+        String nomeSaida = "SAIDA";
+
+        if (expr.contains("=")) {
+            String[] partes = expr.split("=");
+            nomeSaida = partes[0].trim();
+            expr = partes[1].trim();
+        }
+
+        Set<Character> variaveis = new LinkedHashSet<>();
+
+        for (char c : expr.toCharArray()) {
+            if (c >= 'A' && c <= 'Z') {
+                variaveis.add(c);
+            }
+        }
+
+        int xVar = 450;
+        int xPorta = 650;
+        int xSaida = 850;
+
+        int espacamento = 50;
+
+        int indice = 0;
+        int centroY = baseY;
 
         g.setColor(Color.BLACK);
 
-        int baseX = 450;
-        int baseY = 120;
+        g.drawString("Circuito: " + expressao, xVar, baseY - 40);
 
-        int xVar = baseX;
-        int xNot = baseX + 80;
-        int xAnd = baseX + 180;
-        int xOr = baseX + 300;
-        int xOut = baseX + 420;
+        for (char var : variaveis) {
 
-        int yA = baseY;
-        int yB = baseY + 60;
-        int yC = baseY + 120;
+            int y = baseY + (indice * espacamento);
 
-        g.drawString("A", xVar - 20, yA + 5);
-        g.drawString("B", xVar - 20, yB + 5);
-        g.drawString("C", xVar - 20, yC + 5);
+            g.drawString(String.valueOf(var), xVar - 20, y + 5);
 
-        g.drawLine(xVar, yA, xNot, yA);
+            g.drawLine(xVar, y, xPorta, y);
 
-        if (expressao.contains("'")) {
-            g.drawPolygon(
-                    new int[]{xNot, xNot + 40, xNot},
-                    new int[]{yA - 10, yA, yA + 10},
-                    3
-            );
-            g.drawString("NOT", xNot + 5, yA + 5);
-            g.drawLine(xNot + 40, yA, xAnd, yA);
-        } else {
-            g.drawLine(xNot, yA, xAnd, yA);
+            if (expr.contains(var + "'")) {
+
+                int[] xTri = {
+                        xVar + 40,
+                        xVar + 80,
+                        xVar + 40
+                };
+
+                int[] yTri = {
+                        y - 10,
+                        y,
+                        y + 10
+                };
+
+                g.drawPolygon(xTri, yTri, 3);
+                g.drawOval(xVar + 80, y - 3, 6, 6);
+
+                g.drawString("NOT", xVar + 45, y + 25);
+
+                g.drawLine(xVar + 86, y, xPorta, y);
+            }
+
+            centroY = y;
+            indice++;
         }
 
-        g.drawLine(xVar, yB, xOr, yB);
-        g.drawLine(xVar, yC, xOr, yC);
-
-        if (expressao.contains("+")) {
-            g.drawOval(xOr, yB - 20, 60, 60);
-            g.drawString("OR", xOr + 20, yB + 5);
-
-            g.drawLine(xOr + 60, yB, xAnd, yB);
+        if (variaveis.size() > 1) {
+            centroY = baseY + ((variaveis.size() - 1) * espacamento) / 2;
         }
 
-        if (expressao.contains(".")) {
-            g.drawRect(xAnd, yA - 20, 60, 60);
-            g.drawString("AND", xAnd + 10, yA + 5);
+        if (expr.contains(".")) {
 
-            g.drawLine(xAnd + 60, yA, xOut, yA);
+            g.drawRect(xPorta, centroY - 25, 70, 50);
+            g.drawString("AND", xPorta + 15, centroY + 5);
+
+            g.drawLine(xPorta + 70, centroY, xSaida, centroY);
         }
 
-        g.drawString("Saída", xOut + 10, yA + 5);
+        if (expr.contains("+")) {
+
+            g.drawOval(xPorta, centroY - 25, 70, 50);
+            g.drawString("OR", xPorta + 22, centroY + 5);
+
+            g.drawLine(xPorta + 70, centroY, xSaida, centroY);
+        }
+
+        if (!expr.contains(".") && !expr.contains("+")) {
+            g.drawLine(xPorta - 100, centroY, xSaida, centroY);
+        }
+
+        g.drawString(nomeSaida, xSaida + 10, centroY + 5);
     }
 
     @Override
     public Dimension getPreferredSize() {
-        if (dados == null) return new Dimension(900, 600);
-        return new Dimension(900, dados.size() * 30 + 300);
+
+        return new Dimension(1200, 1000);
     }
 }

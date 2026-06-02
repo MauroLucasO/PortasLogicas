@@ -68,9 +68,15 @@ public class TabelaVerdade {
     }
 
     public static List<String[]> gerarTabelaDados(String expressao) {
+
         expressao = expressao.toUpperCase();
 
+        if (expressao.contains("=")) {
+            expressao = expressao.split("=")[1].trim();
+        }
+
         Set<Character> variaveisSet = new LinkedHashSet<>();
+
         for (char c : expressao.toCharArray()) {
             if (c >= 'A' && c <= 'Z') {
                 variaveisSet.add(c);
